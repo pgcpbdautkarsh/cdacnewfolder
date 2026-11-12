@@ -1,0 +1,51 @@
+=== BIG DATA STACK: START & STOP COMMANDS ===
+
+[ALL-IN-ONE]
+Start all            : start-bd
+Stop all             : stop-bd
+
+[MYSQL]
+Start service        : sudo service mysql start
+Stop service         : sudo service mysql stop
+Check status         : sudo service mysql status
+Open MySQL shell     : mysql -u root -p
+Open shell (sudo)    : sudo mysql
+Exit MySQL shell     : exit;
+
+[HDFS]
+Start                : start-dfs.sh
+Stop                 : stop-dfs.sh
+
+[YARN]
+Start                : start-yarn.sh
+Stop                 : stop-yarn.sh
+
+[HBASE]
+Start                : start-hbase.sh
+Stop                 : stop-hbase.sh
+
+[KAFKA]
+Start (KRaft)        : $KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/config/kraft/server.properties
+Start (Zookeeper)    : $KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties
+Stop                 : $KAFKA_HOME/bin/kafka-server-stop.sh
+
+[PYSPARK]
+Start (Local)        : start-spark && pyspark
+Start (YARN)         : start-spark && pyspark --master yarn --deploy-mode client
+Exit                 : exit()
+
+[HIVE CLI]
+Start                : hive
+Exit                 : exit;
+
+[HBASE SHELL]
+Start                : hbase shell
+Exit                 : exit
+
+[FLUME AGENT]
+Start                : flume-ng agent -n <agent_name> -c $FLUME_HOME/conf -f <config>.conf
+Stop                 : Ctrl + C
+
+[QUICK CHECKS & FIXES]
+Check daemons        : jps
+Leave HDFS safemode  : hdfs dfsadmin -safemode leave
