@@ -1,1 +1,160 @@
 
+# ==============================================================================
+
+# COMPREHENSIVE APACHE HIVE SQL COMMAND REFERENCE
+
+# ==============================================================================
+
+
+
+# 1. CLI EXECUTION & MODES
+
+hive                                     # Launch interactive Hive shell
+
+hive -f <script.hql>                     # Execute HiveQL script file
+
+hive -e "SELECT COUNT(*) FROM table;"    # Execute inline Hive query
+
+
+
+# 2. LOCAL EXECUTION OPTIMIZATIONS (FOR SMALL DATASETS)
+
+SET hive.exec.mode.local.auto=true;
+
+SET hive.exec.mode.local.auto.inputbytes.max=50000000;
+
+SET hive.exec.mode.local.auto.input.files.max=10;
+
+
+
+# 3. DATABASE & TABLE MANAGEMENT
+
+CREATE DATABASE IF NOT EXISTS bb_<login>;
+
+USE bb_<login>;
+
+SHOW DATABASES;
+
+SHOW TABLES;
+
+DESCRIBE FORMATTED <table_name>;
+
+DROP TABLE IF EXISTS <table_name>;
+
+
+
+# 4. EXTERNAL CSV TABLE WITH OPENCSVSERDE (HANDLES QUOTED COMMAS)
+
+CREATE EXTERNAL TABLE products_raw (
+
+    product_id INT,
+
+    product STRING,
+
+    category STRING,
+
+    sub_category STRING,
+
+    brand STRING,
+
+    sale_price DOUBLE,
+
+    market_price DOUBLE,
+
+    type STRING,
+
+    rating DOUBLE,
+
+    description STRING
+
+)
+
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+
+WITH SERDEPROPERTIES (
+
+    "separatorChar" = ",",
+
+    "quoteChar" = "\"",
+
+    "escapeChar" = "\\"
+
+)
+
+STORED AS TEXTFILE
+
+LOCATION '/user/<login>/bigbasket/raw'
+
+TBLPROPERTIES ("skip.header.line.count"="1");
+
+
+
+# 5. MANAGED ORC TABLE CREATION (CTAS)
+
+CREATE TABLE discounted_products
+
+STORED AS ORC
+
+AS
+
+SELECT
+
+    product_id, product, category, sub_category, brand,
+
+    sale_price, market_price, type, rating, description,
+
+    ROUND(((market_price - sale_price) / market_price) * 100, 2) AS discount_pct
+
+FROM products_raw
+
+WHERE sale_price < market_price
+
+  AND market_price > 0;
+
+
+
+# 6. ANALYTICAL QUERIES & AGGREGATIONS
+
+SELECT COUNT(*) AS total FROM products_raw;
+
+SELECT COUNT(DISTINCT category) FROM products_raw;
+
+
+
+SELECT
+
+    category,
+
+    COUNT(*) AS product_count,
+
+    ROUND(AVG(sale_price), 2) AS avg_sale_price,
+
+    ROUND(AVG(rating), 2) AS avg_rating
+
+FROM products_raw
+
+GROUP BY category
+
+ORDER BY product_count DESC;
+
+
+
+SELECT
+
+    brand,
+
+    COUNT(rating) AS rated_count,
+
+    ROUND(AVG(rating), 2) AS avg_rating
+
+FROM products_raw
+
+WHERE rating IS NOT NULL AND brand IS NOT NULL
+
+GROUP BY brand
+
+HAVING COUNT(rating) >= 75
+
+ORDER BY avg_rating DESC, brand ASC
+
+LIMIT 10;
