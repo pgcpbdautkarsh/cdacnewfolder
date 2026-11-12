@@ -1,0 +1,55 @@
+# ==============================================================================
+
+# COMPREHENSIVE HADOOP HDFS COMMAND REFERENCE
+
+# ==============================================================================
+
+
+
+# 1. DIRECTORY & FOLDER MANAGEMENT
+
+hdfs dfs -mkdir -p /user/<login>/<dir>     # Create HDFS directory structure
+
+hdfs dfs -ls /user/<login>/<dir>         # List files in HDFS directory
+
+hdfs dfs -ls -R /user/<login>/<dir>        # Recursive list of directory tree
+
+hdfs dfs -rm -r -skipTrash /user/<login>/<dir> # Delete directory bypassing trash
+
+
+
+# 2. FILE UPLOAD, DOWNLOAD & TRANSFER
+
+hdfs dfs -put <local_file> /user/<login>/<hdfs_dir>/   # Upload local file to HDFS
+
+hdfs dfs -get /user/<login>/<hdfs_file> <local_dir>/   # Download HDFS file to local
+
+hdfs dfs -cp /user/<login>/<src> /user/<login>/<dest>    # Copy file within HDFS
+
+hdfs dfs -mv /user/<login>/<src> /user/<login>/<dest>    # Move/rename file within HDFS
+
+hdfs dfs -rm -skipTrash /user/<login>/<hdfs_file>        # Delete file from HDFS
+
+
+
+# 3. METADATA, SIZE & CONTENT INSPECTION
+
+hdfs dfs -du -h /user/<login>/<dir>                      # Human-readable space usage per file
+
+hdfs dfs -stat "%b bytes, replication=%r, blocksize=%o" <file> # Show bytes, replication, block size
+
+hdfs dfs -cat /user/<login>/<hdfs_file> | head -n 5      # Read first 5 lines from HDFS
+
+hdfs dfs -cat /user/<login>/<hdfs_file> | tail -n +2 | wc -l # Count rows excluding header
+
+hdfs fsck /user/<login>/<hdfs_file> -files -blocks -locations # Check file health and blocks
+
+
+
+# 4. PERMISSIONS & REPLICATION
+
+hdfs dfs -chmod 755 /user/<login>/<file>                 # Change HDFS file permissions
+
+hdfs dfs -chown <user>:<group> /user/<login>/<file>      # Change HDFS owner
+
+hdfs dfs -setrep -w 3 /user/<login>/<file>               # Change file replication factor to 3
