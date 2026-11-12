@@ -1,0 +1,95 @@
+# ==============================================================================
+
+# COMPREHENSIVE APACHE KAFKA CLI & PYTHON CLIENT REFERENCE
+
+# ==============================================================================
+
+
+
+# 1. TOPIC MANAGEMENT (CREATE, LIST, DESCRIBE, DELETE)
+
+/opt/kafka_2.12-3.2.2/bin/kafka-topics.sh --bootstrap-server master:9092 --list
+
+/opt/kafka_2.12-3.2.2/bin/kafka-topics.sh --bootstrap-server master:9092 --create --topic bb_prices_<login> --partitions 3 --replication-factor 1
+
+/opt/kafka_2.12-3.2.2/bin/kafka-topics.sh --bootstrap-server master:9092 --describe --topic bb_prices_<login>
+
+/opt/kafka_2.12-3.2.2/bin/kafka-topics.sh --bootstrap-server master:9092 --delete --topic bb_prices_<login>
+
+
+
+# 2. CONSOLE PRODUCER & CONSUMER (CLI TESTING)
+
+/opt/kafka_2.12-3.2.2/bin/kafka-console-producer.sh --bootstrap-server master:9092 --topic bb_prices_<login>
+
+/opt/kafka_2.12-3.2.2/bin/kafka-console-consumer.sh --bootstrap-server master:9092 --topic bb_prices_<login> --from-beginning
+
+
+
+# 3. CONSUMER GROUP & LAG MONITORING
+
+/opt/kafka_2.12-3.2.2/bin/kafka-consumer-groups.sh --bootstrap-server master:9092 --list
+
+/opt/kafka_2.12-3.2.2/bin/kafka-consumer-groups.sh --bootstrap-server master:9092 --group price_monitor_<login> --describe
+
+/opt/kafka_2.12-3.2.2/bin/kafka-consumer-groups.sh --bootstrap-server master:9092 --group price_monitor_<login> --topic bb_prices_<login> --reset-offsets --to-earliest --execute
+
+
+
+# 4. PYTHON KAFKA PRODUCER BOILERPLATE (kafka-python)
+
+import csv, json, hashlib
+
+from kafka import KafkaProducer
+
+
+
+producer = KafkaProducer(
+
+    bootstrap_servers=["master:9092"],
+
+    value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode("utf-8"),
+
+    key_serializer=lambda k: k.encode("utf-8"),
+
+    acks="all"
+
+)
+
+# producer.send(topic, key=..., value=..., partition=...).get(timeout=30)
+
+# producer.flush()
+
+# producer.close()
+
+
+
+# 5. PYTHON KAFKA CONSUMER BOILERPLATE (kafka-python)
+
+from kafka import KafkaConsumer
+
+
+
+consumer = KafkaConsumer(
+
+    "bb_prices_<login>",
+
+    bootstrap_servers=["master:9092"],
+
+    group_id="price_monitor_<login>",
+
+    enable_auto_commit=False,
+
+    auto_offset_reset="earliest",
+
+    value_deserializer=lambda v: json.loads(v.decode("utf-8"))
+
+)
+
+# for message in consumer:
+
+#     print(message.partition, message.offset, message.value)
+
+# consumer.commit()
+
+# consumer.close()
