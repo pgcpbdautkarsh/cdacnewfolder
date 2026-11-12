@@ -1,0 +1,165 @@
+# ==============================================================================
+
+# COMPREHENSIVE APACHE SPARK & PYSPARK DATAFRAME REFERENCE
+
+# ==============================================================================
+
+
+
+# 1. LAUNCH & EXECUTION
+
+pyspark --master local[2]                # Launch PySpark shell locally with 2 threads
+
+spark-submit --master local[2] script.py # Submit PySpark script
+
+exec(open("script.py").read())           # Execute script inside interactive shell
+
+
+
+# 2. INITIALIZATION & IMPORTS
+
+from pyspark.sql import SparkSession
+
+from pyspark.sql.types import (
+
+    StructType, StructField, IntegerType, StringType, DoubleType
+
+)
+
+from pyspark.sql.functions import (
+
+    col, count, when, trim, round as spark_round, row_number, desc, asc
+
+)
+
+from pyspark.sql.window import Window
+
+
+
+spark = SparkSession.builder.appName("BigBasketAnalysis").getOrCreate()
+
+
+
+# 3. EXPLICIT SCHEMA DEFINITION & CSV LOADING
+
+schema = StructType([
+
+    StructField("product_id", IntegerType(), True),
+
+    StructField("product", StringType(), True),
+
+    StructField("category", StringType(), True),
+
+    StructField("sub_category", StringType(), True),
+
+    StructField("brand", StringType(), True),
+
+    StructField("sale_price", DoubleType(), True),
+
+    StructField("market_price", DoubleType(), True),
+
+    StructField("type", StringType(), True),
+
+    StructField("rating", DoubleType(), True),
+
+    StructField("description", StringType(), True)
+
+])
+
+
+
+df = (
+
+    spark.read
+
+    .option("header", "true")
+
+    .option("quote", '"')
+
+    .option("escape", '"')
+
+    .schema(schema)
+
+    .csv("hdfs:///user/<login>/bigbasket/raw/bigbasket_products.csv")
+
+)
+
+
+
+# 4. INSPECTION & NULL COUNTING
+
+df.printSchema()
+
+df.count()
+
+df.show(5, truncate=False)
+
+
+
+null_counts = df.select([
+
+    count(when(col(c).isNull(), c)).alias(c)
+
+    for c in df.columns
+
+])
+
+null_counts.show(truncate=False)
+
+
+
+# 5. CLEANING, DEDUPLICATION & MISSING VALUE HANDLING
+
+comparison_cols = [c for c in df.columns if c != "product_id"]
+
+
+
+cleaned = df.filter(
+
+    col("product").isNotNull() & (trim(col("product")) != "")
+
+).dropDuplicates(comparison_cols).fillna({
+
+    "brand": "Unknown",
+
+    "description": ""
+
+})
+
+
+
+# 6. TRANSFORMATIONS & WINDOW RANKING (TOP N PER GROUP)
+
+discounted = cleaned.filter(
+
+    col("market_price").isNotNull() & (col("market_price") > 0)
+
+).withColumn(
+
+    "discount_pct",
+
+    spark_round(((col("market_price") - col("sale_price")) / col("market_price")) * 100, 2)
+
+)
+
+
+
+window_spec = Window.partitionBy("category").orderBy(
+
+    desc("discount_pct"), asc("product")
+
+)
+
+
+
+top3 = (
+
+    discounted
+
+    .withColumn("rank", row_number().over(window_spec))
+
+    .filter(col("rank") <= 3)
+
+)
+
+top3.show(100, truncate=False)
