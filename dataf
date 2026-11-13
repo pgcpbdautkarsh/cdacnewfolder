@@ -1,0 +1,197 @@
+# ==============================================================================
+
+# COMPREHENSIVE APACHE SPARK DATAFRAME API COMMAND & OPERATION REFERENCE
+
+# ==============================================================================
+
+
+
+# 1. DATAFRAME CREATION & LOADING
+
+spark.read.format("csv").option("header", "true").load("path.csv")
+
+spark.read.option("header", "true").option("inferSchema", "true").csv("path.csv")
+
+spark.read.json("path.json")
+
+spark.read.parquet("path.parquet")
+
+spark.read.orc("path.orc")
+
+spark.createDataFrame(data, schema)
+
+
+
+# 2. INSPECTION & METADATA
+
+df.printSchema()                   # Display schema structure (tree format)
+
+df.show(n=20, truncate=True)       # Display first n rows (truncate long strings if True)
+
+df.head(n)                         # Return first n rows as list of Row objects
+
+df.first()                         # Return first row
+
+df.columns                         # Return list of column names
+
+df.dtypes                          # Return list of (column_name, data_type) tuples
+
+df.summary().show()                # Compute statistical summary (count, mean, stddev, min, max, percentiles)
+
+df.describe().show()               # Compute basic statistics for numeric/string columns
+
+
+
+# 3. SELECTING, FILTERING & COLUMN TRANSFORMATIONS
+
+df.select("col1", "col2")          # Select specific columns
+
+df.select(col("col1") + 10)        # Select using column expressions
+
+df.selectExpr("col1", "col2 as c2")# Select using SQL expressions
+
+df.filter(col("age") > 30)         # Filter rows (alias for where)
+
+df.where((col("age") > 30) & (col("status") == "ACTIVE")) # Filter with multiple conditions
+
+df.drop("col1", "col2")            # Drop specified columns
+
+df.withColumn("new_col", col("a") * 2) # Add a new column or replace existing
+
+df.withColumnRenamed("old", "new") # Rename a column
+
+df.distinct()                      # Return DataFrame with distinct rows
+
+df.dropDuplicates(["col1"])        # Drop duplicate rows based on subset of columns
+
+
+
+# 4. HANDLING NULLS & MISSING VALUES
+
+df.na.drop()                       # Drop rows containing any null values
+
+df.na.drop("all")                  # Drop rows where all columns are null
+
+df.na.drop(subset=["col1", "col2"])# Drop rows if null in specified columns
+
+df.na.fill(0)                      # Replace all null numeric values with 0
+
+df.na.fill({"col1": "Unknown", "col2": 0}) # Replace nulls per column dictionary
+
+df.fillna(value, subset=["col1"])  # Replace nulls in specific columns
+
+
+
+# 5. SORTING & ORDERING
+
+df.sort("col1", ascending=True)    # Sort by column ascending
+
+df.orderBy(col("col1").desc(), col("col2").asc()) # Order by multiple columns with directions
+
+
+
+# 6. GROUPING & AGGREGATIONS
+
+df.groupBy("category").count()     # Count rows per category
+
+df.groupBy("category").agg(
+
+    count("*").alias("total"),
+
+    avg("sale_price").alias("avg_price"),
+
+    max("market_price").alias("max_price"),
+
+    min("rating").alias("min_rating")
+
+)
+
+df.groupBy("category", "sub_category").sum("sale_price") # Group by multiple columns
+
+
+
+# 7. JOINS & SET OPERATIONS
+
+df1.join(df2, df1.id == df2.id, "inner")    # Inner join
+
+df1.join(df2, "id", "left")                # Left outer join on common column name
+
+df1.join(df2, df1.id == df2.id, "right")   # Right outer join
+
+df1.join(df2, df1.id == df2.id, "outer")   # Full outer join
+
+df1.join(df2, how="cross")                 # Cross join (Cartesian product)
+
+
+
+df1.union(df2)                             # Union all (combine rows, keep duplicates)
+
+df1.unionByName(df2)                       # Union by column names (order-independent)
+
+df1.intersect(df2)                         # Return intersection of rows
+
+df1.subtract(df2)                          # Return rows in df1 not present in df2 (except)
+
+
+
+# 8. WINDOW FUNCTIONS
+
+from pyspark.sql.window import Window
+
+from pyspark.sql.functions import row_number, rank, dense_rank, lead, lag, sum as spark_sum
+
+
+
+windowSpec = Window.partitionBy("category").orderBy(col("sale_price").desc())
+
+df.withColumn("row_num", row_number().over(windowSpec))
+
+df.withColumn("rk", rank().over(windowSpec))
+
+df.withColumn("dense_rk", dense_rank().over(windowSpec))
+
+df.withColumn("prev_price", lag("sale_price", 1).over(windowSpec))
+
+df.withColumn("next_price", lead("sale_price", 1).over(windowSpec))
+
+df.withColumn("running_total", spark_sum("sale_price").over(windowSpec.rowsBetween(Window.unboundedPreceding, Window.currentRow)))
+
+
+
+# 9. USER DEFINED FUNCTIONS (UDFs)
+
+from pyspark.sql.types import StringType
+
+from pyspark.sql.functions import udf
+
+
+
+def categorize_price(price):
+
+    return "High" if price > 500 else "Low"
+
+
+
+price_udf = udf(categorize_price, StringType())
+
+df.withColumn("price_tier", price_udf(col("sale_price")))
+
+
+
+# 10. SPARK SQL & TEMP VIEWS
+
+df.createOrReplaceTempView("products_view")
+
+spark.sql("SELECT category, COUNT(*) FROM products_view GROUP BY category").show()
+
+
+
+# 11. WRITING DATA OUT TO STORAGE
+
+df.write.mode("overwrite").csv("hdfs:///path/to/output_csv")
+
+df.write.mode("append").parquet("hdfs:///path/to/output_parquet")
+
+df.write.mode("error").orc("hdfs:///path/to/output_orc")
+
+df.write.partitionBy("category").parquet("hdfs:///path/to/partitioned_parquet")
